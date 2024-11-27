@@ -1,8 +1,6 @@
-# Docs for the Azure Web Apps Deploy action: https://github.com/Azure/webapps-deploy
-# More GitHub Actions for Azure: https://github.com/Azure/actions
-
 name: Build and deploy Node.js app to Azure Web App - Studentregistrationapp
 
+# Trigger on push to the main branch and allow manual trigger
 on:
   push:
     branches:
@@ -10,31 +8,38 @@ on:
   workflow_dispatch:
 
 jobs:
+  # Build Job
   build:
     runs-on: windows-latest
-
     steps:
-      - uses: actions/checkout@v4
+      # Step 1: Checkout repository code
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
+      # Step 2: Set up Node.js environment
       - name: Set up Node.js version
         uses: actions/setup-node@v3
         with:
           node-version: '20.x'
 
-      - name: npm install
+      # Step 3: Install Node.js dependencies
+      - name: Install dependencies
         run: npm install
         working-directory: Frontend
       
-      - name: npm run build
+      # Step 4: Build the application
+      - name: Build application
         run: npm run build --if-present
         working-directory: Frontend
 
+      # Step 5: Upload built artifact for deployment
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v3
         with:
           name: node-app
           path: Frontend/dist
 
+  # Deployment Job
   deploy:
     runs-on: ubuntu-latest
     needs: build
@@ -42,14 +47,16 @@ jobs:
       name: 'Production'
       url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
     permissions:
-      id-token: write #This is required for requesting the JWT
+      id-token: write # Required for Azure JWT authentication
 
     steps:
-      - name: Download artifact from build job
+      # Step 1: Download artifact from the build job
+      - name: Download artifact
         uses: actions/download-artifact@v3
         with:
           name: node-app
-      
+
+      # Step 2: Login to Azure
       - name: Login to Azure
         uses: azure/login@v2
         with:
@@ -57,11 +64,11 @@ jobs:
           tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_6DDD0BBC65AA46168C95F87AF3E60726 }}
           subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_AC6ACAE86A6B40C983B5927250717536 }}
 
-      - name: 'Deploy to Azure Web App'
+      # Step 3: Deploy the application to Azure Web App
+      - name: Deploy to Azure Web App
         uses: azure/webapps-deploy@v3
         id: deploy-to-webapp
         with:
           app-name: 'mean-demo-model1'
           slot-name: 'Production'
           package: .
-          
